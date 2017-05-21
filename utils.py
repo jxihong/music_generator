@@ -1,4 +1,14 @@
 import numpy as np
+import tensorflow as tf
+
+
+def sample(probs):
+    """ 
+    Takes in a vector of probabilities, and returns a random vector 
+    of 0s and 1s sampled from the input vector
+    """
+    return tf.floor(probs + tf.random_uniform(tf.shape(probs), 0, 1))
+
 
 def batch_generator(data, batch_size):
     """

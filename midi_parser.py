@@ -1,10 +1,110 @@
 import midi
 import numpy as np
+import glob
+
 
 lowerBound = 24
 upperBound = 102
 span = upperBound-lowerBound
 
+num_timesteps = 5
+
+def get_song(song):
+    # Reshape song vector by placing consecutive timesteps next to eachother
+    song = np.array(song)
+    # Round down to nearest multiple
+    song = song[:int(np.floor((song.shape[0]/num_timesteps) * num_timesteps))]
+    # Reshape into blocks of num_timesteps
+    song = np.reshape(song, [song.shape[0]/num_timesteps, song.shape[1]*num_timesteps])
+    return song
+    
+
+def get_songs(path):
+    # Get all song vectors from a folder of MIDI files
+    files = glob.glob('{}/*.mid*'.format(path))
+    songs = []
+    for f in files:
+        try:
+            song = np.array(midiToStatematrix(f))
+            song = get_song(song)
+            if np.array(song).shape[0] > 50:
+                songs.append(song)
+        except:
+            # Just ignore songs that can't be parsed
+            continue         
+        return songs
+
+
+def get_melody_and_drums(midifile):
+    pattern = midi.read_midifile(midifile)
+    
+    melody_pattern = midi.Pattern()
+    drum_pattern = midi.Pattern()
+
+    melody_pattern.resolution = pattern.resolution
+    drum_pattern.resolution = pattern.resolution
+
+    for track in pattern:
+        total_ticks = [0] * 17
+    
+        melody_track = midi.Track()
+        drum_track = midi.Track()
+    
+        melody_channels = [0]
+        for i in xrange(len(track)):
+            evt = track[i]
+         
+            if isinstance(evt, midi.ProgramChangeEvent):
+                if evt.data in [[0], [1], [2], [4], [5]]:
+                    melody_channels.append(evt.channel)
+                    melody_track.append(evt)
+                
+            elif isinstance(evt, midi.TimeSignatureEvent) or \
+                    isinstance(evt, midi.SetTempoEvent) or \
+                    isinstance(evt, midi.KeySignatureEvent):          
+                melody_track.append(evt)
+                drum_track.append(evt)
+            
+            elif isinstance(evt, midi.NoteEvent):
+                total_ticks = [x + evt.tick for x in total_ticks]
+            
+                if (evt.channel == 9):
+                    if type(evt) == midi.events.NoteOnEvent:
+                        add_event = midi.NoteOnEvent()
+                    else:
+                        add_event = midi.NoteOffEvent()
+
+                    add_event.tick = total_ticks[9]
+                    add_event.channel = evt.channel
+                    add_event.data = evt.data
+
+                    drum_track.append(add_event)
+                    total_ticks[9] = 0
+                
+                elif (evt.channel in melody_channels):   
+                    if type(evt) == midi.events.NoteOnEvent:
+                        add_event = midi.NoteOnEvent()
+                    else:
+                        add_event = midi.NoteOffEvent()
+
+                    add_event.tick = total_ticks[evt.channel]
+                    add_event.channel = evt.channel
+                    add_event.data = evt.data
+
+                    melody_track.append(add_event)
+                    total_ticks[evt.channel] = 0
+        
+        eot = midi.EndOfTrackEvent(tick=1)
+        drum_track.append(eot)
+        melody_track.append(eot)
+
+        if len(melody_track) > 10:
+            melody_pattern.append(melody_track)
+        if len(drum_track) > 10:
+            drum_pattern.append(drum_track)
+
+    return patternToStatematrix(melody_pattern), patternToStatematrix(drum_pattern)
+    
 
 # Borrowed heavily from Daniel Johnson's midi manipulation code, with a few changes
 # to shape of statematrix.
@@ -12,7 +112,11 @@ span = upperBound-lowerBound
 
 def midiToStatematrix(midifile):
     pattern = midi.read_midifile(midifile)
+    
+    return patternToStatematrix(pattern)
 
+
+def patternToStatematrix(pattern):
     timeleft = [0 for track in pattern]
     posns = [0 for track in pattern]
 
@@ -101,3 +205,4 @@ def statematrixToMidi(statematrix, name='test', bpm=120):
     track.append(eot)
 
     midi.write_midifile("{}.mid".format(name), pattern)
+
