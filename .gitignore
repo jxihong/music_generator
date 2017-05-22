@@ -2,10 +2,14 @@
 *pyc
 *.ipynb
 *.mid*
-*.txt
 
 .ipynb_checkpoints/
 
 # Random Mac Temp Files
 *~
 *.DS_Store
+
+parameter_checkpoints/checkpoint
+parameter_checkpoints/*ckpt*
+
+data/
