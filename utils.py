@@ -90,3 +90,22 @@ def read_state_matrices():
         melody_states.append(temp)
 
     return drum_states,melody_states
+
+def pad_track_list(stateList):   
+    '''
+    This function takes a list of tracks which are themselves numpy arrays 
+    of (1,156) numpy arrays which represent notes. It pads the end of each track 
+    with enough notevectors of all zeros so that every track has the length of 
+    the longest initial track. It returns an updated tracklist.
+    '''
+    trackList = stateList
+    lengths = []
+    zeros = np.zeros(156)
+    for i in range(0, len(trackList)):
+        lengths.append(len(trackList[i]))
+    longest_track = lengths.index(max(lengths))
+    max_length = max(lengths)
+    for i in range(0, len(trackList)):
+        while(len(trackList[i]) < max_length):
+            trackList[i] = np.vstack((trackList[i], [zeros]))
+    return trackList
