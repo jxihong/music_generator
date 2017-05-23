@@ -65,18 +65,18 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
         bh_t = tf.add(bh, tf.matmul(u_tm1, Wuh))
         
         if v_tm1 is None:
-            v_t = gibbs_sample(tf.zeros([1, n_visible], tf.float32), W, bv_t, bh_t, 1)
+            v_t = gibbs_sample(tf.zeros([1, n_visible], tf.float32), W, bv_t, bh_t, k=25)
         else:
             v_t = gibbs_sample(v_tm1, W, bv_t, bh_t, k=25)
-        
+
         u_t  = (tf.tanh(bu + tf.matmul(v_t, Wvu) + tf.matmul(u_tm1, Wuu)))
         
-        music = tf.concat([music, v_t], 0)
+        music = tf.concat(0, [music, v_t])
         return i + 1, k, v_t, u_t, music
     
     
     def generate_music(num_timesteps, x=x, music_init=music, n_visible=n_visible,
-                       u0=u0, start_length=2000):
+                       u0=u0, start_length=200):
         """
         Generates sequence of music.
         """
@@ -165,7 +165,9 @@ class RNN_RBM:
             save_path = saver.save(sess, save)
 
 
-    def fit(self, songs, checkpoint="", save="parameter_checkpoints/rnnrbm_final.ckpt"):
+    def fit(self, songs, 
+            checkpoint="parameter_checkpoints/rnnrbm_initial.ckpt", 
+            save="parameter_checkpoints/rnnrbm_final.ckpt"):
         """
         Train RNN-RBM via SGD on parsed MIDI matrices.
         """

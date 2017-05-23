@@ -53,7 +53,7 @@ def gibbs_sample_converge(x, W, bv, bh):
                                   step, [x, tf.constant(True)], 
                                   parallel_iterations=1,
                                   back_prop = False)
-
+    
     x_sample = sample(x_sample)
     # TF tutorials said we need this to stop RBM values from backpropogating
     x_sample = tf.stop_gradient(x_sample) 

@@ -16,7 +16,8 @@ if __name__=='__main__':
     saver = tf.train.Saver(model.training_vars)
     
     start = get_song(midiToStatematrix(song_primer)) # Start sequence for generated song
-    start_length = 600
+
+    start_length = 20
     with tf.Session() as sess:
         init = tf.global_variables_initializer()
         sess.run(init)
@@ -24,9 +25,11 @@ if __name__=='__main__':
         
         for i in range(num_songs):
             music = sess.run(model.generate(300), 
-                             feed_dict={ model.x: start[:2000], 
-                                         model.music: start[:2000]})
+                             feed_dict={ model.x: start[:200], 
+                                         model.music: start[:start_length]})
             
-            song_path = "generated/rnnrbm_{}.mid".format(i)
+            print music.shape
+            print music[20:]
+            song_path = "generated/rnnrbm_{}".format(i)
             write_song(song_path, music)
 

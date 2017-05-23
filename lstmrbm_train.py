@@ -2,16 +2,16 @@ from lstmrbm import *
 from midi_parser import *
 
 if __name__=='__main__':
-    #songs = get_songs('Jazz_Music_Midi')
-
+    #songs = get_songs('Test_Midi')
+    
     songs = []
-    for file in glob.glob("Classical_Data/*.txt"):
+    for file in glob.glob("Classical_Data/*txt"):
         song = np.genfromtxt(file)
         songs.append(song)
-    
+        
     '''
     songs = []
-    for file in glob.glob("matrices/*_melody.txt"):
+    for file in glob.glob("Jazz_Data/*_melody.txt"):
         song = np.genfromtxt(file)
         try:
             song = song[:int(np.floor((song.shape[0]/num_timesteps) * num_timesteps))]
@@ -29,7 +29,7 @@ if __name__=='__main__':
     n_hidden = 150
     n_hidden_recurrent = 100
     batch_size = 100
-    n_epochs = 100
+    n_epochs = 400
 
     model = LSTM_RBM(n_hidden, n_hidden_recurrent, batch_size, n_epochs)
     

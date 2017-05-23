@@ -33,7 +33,7 @@ def preprocess(path):
             
         newscore = score.transpose(halfSteps)
         key = newscore.analyze('key')
-        print key.tonic.name, key.mode
+        #print key.tonic.name, key.mode
         newFileName = "{}/C_{}".format(path, file.split('/')[-1])
         newscore.write('midi', newFileName)
         
@@ -243,16 +243,17 @@ def statematrixToMidi(statematrix, name='test', bpm=120):
 
 
 if __name__ == '__main__':
-    preprocess('Classical_Music_Midi')
+    #preprocess('Classical_Music_Midi')
     
-    '''
     for file in glob.glob('Classical_Music_Midi/C_*'):
-        song = np.array(midiToStatematrix(file))
-        song = get_song(song)
+        try:
+            song = np.array(midiToStatematrix(file))
+            song = get_song(song)
         
-        filename = file.split('/')[-1]
-
-        write_filename = ''.join(filename.split('.')[:-1])
-        print write_filename
-        np.savetxt('Classical_Data/{}.txt'.format(write_filename), song)
-    '''
+            filename = file.split('/')[-1]
+            
+            write_filename = ''.join(filename.split('.')[:-1])
+            print write_filename
+            np.savetxt('Classical_Data/{}.txt'.format(write_filename), song)
+        except:
+            continue

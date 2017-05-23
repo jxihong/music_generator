@@ -72,7 +72,6 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
     
     music = tf.placeholder(tf.float32, [None, n_visible])
     
-    
     def lstm_recurrence(lstm_args, v_t):
         u_tm1 = lstm_args[0]
         q_tm1 = lstm_args[1]
@@ -110,10 +109,10 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
         bh_t = tf.add(bh, tf.matmul(u_tm1, Wuh)) + tf.matmul(q_tm1, Wqh)
         
         if v_tm1 is None:
-            v_t = gibbs_sample_converge(tf.zeros([1, n_visible], tf.float32), W, bv_t, bh_t)
+            v_t = gibbs_sample(tf.zeros([1, n_visible], tf.float32), W, bv_t, bh_t, k=25)
         else:
-            v_t = gibbs_sample_converge(v_tm1, W, bv_t, bh_t)
-        
+            v_t = gibbs_sample(v_tm1, W, bv_t, bh_t, k=25)
+            
         u_t  = (tf.tanh(bu + tf.matmul(v_t, Wvu) + tf.matmul(u_tm1, Wuu)))
         
         i_t = tf.tanh(bi + tf.matmul(c_tm1, Wci) + tf.matmul(q_tm1, Wqi) + tf.matmul(u_t, Wui))
@@ -122,12 +121,12 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
         o_t = tf.tanh(bo + tf.matmul(c_t, Wco) + tf.matmul(q_tm1, Wqo) + tf.matmul(u_t, Wuo))
         q_t = o_t * tf.tanh(c_t)
         
-        music = tf.concat([music, v_t], 0)
-        return i + 1, k, v_t, u_t, q_t, c_t, music
+        music = tf.concat(0, [music, v_t])
+        return [i + 1, k, v_t, u_t, q_t, c_t, music]
     
     
     def generate_music(num_timesteps, x=x, music_init=music, n_visible=n_visible,
-                       lstm_args=(u0, q0, c0), start_length=2000):
+                       lstm_args=(u0, q0, c0), start_length=200):
         """
         Generates sequence of music.
         """
@@ -219,7 +218,9 @@ class LSTM_RBM:
             save_path = saver.save(sess, save)
 
 
-    def fit(self, songs, checkpoint="", save="parameter_checkpoints/lstmrbm_final.ckpt"):
+    def fit(self, songs, 
+            checkpoint="parameter_checkpoints/lstmrbm_initial.ckpt", 
+            save="parameter_checkpoints/lstmrbm_final.ckpt"):
         """
         Train RNN-RBM via SGD on parsed MIDI matrices.
         """
