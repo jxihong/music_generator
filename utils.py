@@ -4,19 +4,10 @@ Contains various data utilities.
 
 import glob
 import numpy as np
-import tensorflow as tf
 from midi_parser import midiToStatematrix
 
 
 NOTE_SIZE = 156
-
-def sample(probs):
-    """ 
-    Takes in a vector of probabilities, and returns a random vector 
-    of 0s and 1s sampled from the input vector
-    """
-    return tf.floor(probs + tf.random_uniform(tf.shape(probs), 0, 1))
-
 
 def batch_generator(data, batch_size):
     """
@@ -73,6 +64,7 @@ def write_state_matrices():
         np.savetxt(drum_fname,drum_mat)
         np.savetxt(melody_fname,melody_mat) 
 
+
 def read_state_matrices():
     """
     Reads in the written state matrices from the files, returns two arrays
@@ -90,6 +82,7 @@ def read_state_matrices():
         melody_states.append(temp)
 
     return drum_states,melody_states
+
 
 def pad_track_list(stateList):   
     '''
