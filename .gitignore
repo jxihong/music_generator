@@ -1,6 +1,5 @@
 # Python binaries
 *pyc
-*.ipynb
 *.mid*
 
 .ipynb_checkpoints/
