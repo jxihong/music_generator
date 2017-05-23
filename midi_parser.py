@@ -27,7 +27,7 @@ def preprocess(path):
         
         if key.mode == "major":
             halfSteps = majors[key.tonic.name]
-        
+            
         elif key.mode == "minor":
             halfSteps = minors[key.tonic.name]
             
@@ -244,3 +244,15 @@ def statematrixToMidi(statematrix, name='test', bpm=120):
 
 if __name__ == '__main__':
     preprocess('Classical_Music_Midi')
+    
+    '''
+    for file in glob.glob('Classical_Music_Midi/C_*'):
+        song = np.array(midiToStatematrix(file))
+        song = get_song(song)
+        
+        filename = file.split('/')[-1]
+
+        write_filename = ''.join(filename.split('.')[:-1])
+        print write_filename
+        np.savetxt('Classical_Data/{}.txt'.format(write_filename), song)
+    '''

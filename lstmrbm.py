@@ -155,10 +155,12 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
     # For training, compute bv_t, bh_t given x. 
     batch_u_t, batch_q_t, batch_c_t = tf.scan(lstm_recurrence, x, initializer=(u0, q0, c0))
     
-    batch_bh_t =  tf.reshape(tf.scan(bh_recurrence, [batch_u_t, batch_q_t], tf.zeros([1, n_hidden], tf.float32)),
+    batch_bh_t =  tf.reshape(tf.scan(bh_recurrence, [batch_u_t, batch_q_t], 
+                                     tf.zeros([1, n_hidden], tf.float32)),
                              [batch_size, n_hidden])
 
-    batch_bv_t =  tf.reshape(tf.scan(bv_recurrence, [batch_u_t, batch_q_t], tf.zeros([1, n_visible], tf.float32)),
+    batch_bv_t =  tf.reshape(tf.scan(bv_recurrence, [batch_u_t, batch_q_t], 
+                                     tf.zeros([1, n_visible], tf.float32)),
                              [batch_size, n_visible])
     
     

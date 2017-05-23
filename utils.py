@@ -32,6 +32,7 @@ def batch_generator(data, batch_size):
 
         yield batch
 
+
 def write_state_matrices():
     """
     Writes the state matrices of all the melody and drum files to a folder 

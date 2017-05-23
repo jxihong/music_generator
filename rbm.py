@@ -75,13 +75,13 @@ def cd_update(x, W, bv, bh, learning_rate=5e-3):
     #Update the values of W, bh, and bv
     size_x = tf.cast(tf.shape(x)[0], tf.float32)
 
-    W_update  = tf.multiply(learning_rate/size_x, 
-                       tf.subtract(tf.matmul(tf.transpose(x), h), \
+    W_update  = tf.mul(learning_rate/size_x, 
+                       tf.sub(tf.matmul(tf.transpose(x), h), \
                                   tf.matmul(tf.transpose(x_sample), h_sample)))
-    bv_update = tf.multiply(learning_rate/size_x, 
-                       tf.reduce_sum(tf.subtract(x, x_sample), 0, True))
-    bh_update = tf.multiply(learning_rate/size_x, 
-                       tf.reduce_sum(tf.subtract(h, h_sample), 0, True))
+    bv_update = tf.mul(learning_rate/size_x, 
+                       tf.reduce_sum(tf.sub(x, x_sample), 0, True))
+    bh_update = tf.mul(learning_rate/size_x, 
+                       tf.reduce_sum(tf.sub(h, h_sample), 0, True))
     
     #When we do sess.run(update), TensorFlow will run all 3 update steps
     update = [W.assign_add(W_update), bv.assign_add(bv_update), 
@@ -102,5 +102,5 @@ def get_free_energy_cost(x, W, bv, bh, k):
                  - tf.matmul(v, tf.transpose(bv)))
 
     #The cost is based on the difference in free energy between x and xsample
-    cost = tf.reduce_mean(tf.subtract(free_energy(x), free_energy(x_sample)))
+    cost = tf.reduce_mean(tf.sub(free_energy(x), free_energy(x_sample)))
     return cost
