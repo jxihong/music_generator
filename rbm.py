@@ -61,15 +61,16 @@ def gibbs_sample_converge(x, W, bv, bh):
 
 
 
-def cd_update(x, W, bv, bh, learning_rate=5e-3):
+def cd_update(x, W, bv, bh, k, learning_rate=1e-2):
     """
     Get updates from contrastive divergence for a single
     epoch of training.
     """
     # Run gibbs sampling for one step and save samples for x and h
+    x_sample = gibbs_sample(x, W, bv, bh, k)
+    
     h = sample(tf.sigmoid(tf.matmul(x, W) + bh))
         
-    x_sample = sample(tf.sigmoid(tf.matmul(h, tf.transpose(W)) + bv))
     h_sample = sample(tf.sigmoid(tf.matmul(x_sample, W) + bh))
 
     #Update the values of W, bh, and bv

@@ -5,7 +5,8 @@ from rnnrbm import *
 from midi_parser import *
 
 # Extracts first timesteps as primer for generation
-song_primer = 'Jazz_Music_Midi/PianoMan.mid'
+song_primer = 'Classical_Music_Midi/C_jigs_simple_chords_129.mid'
+
 # Saved weights for trainged rnnrbm
 model_path = 'parameter_checkpoints/rnnrbm_final.ckpt'
 
@@ -18,6 +19,7 @@ if __name__=='__main__':
     start = get_song(midiToStatematrix(song_primer)) # Start sequence for generated song
 
     start_length = 20
+    
     with tf.Session() as sess:
         init = tf.global_variables_initializer()
         sess.run(init)
@@ -28,8 +30,6 @@ if __name__=='__main__':
                              feed_dict={ model.x: start[:200], 
                                          model.music: start[:start_length]})
             
-            print music.shape
-            print music[20:]
             song_path = "generated/rnnrbm_{}".format(i)
             write_song(song_path, music)
 

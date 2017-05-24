@@ -5,7 +5,7 @@ from lstmrbm import *
 from midi_parser import *
 
 # Extracts first timesteps as primer for generation
-song_primer = 'Test_Midi/PianoMan.mid'
+song_primer = 'Classical_Music_Midi/C_jigs_simple_chords_129.mid'
 # Saved weights for trainged rnnrbm
 model_path = 'parameter_checkpoints/lstmrbm_final.ckpt'
 

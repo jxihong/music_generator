@@ -8,7 +8,7 @@ lowerBound = 24
 upperBound = 102
 span = upperBound-lowerBound
 
-num_timesteps = 5
+num_timesteps = 1
 
 majors = dict([("A-", 4),("G#", 4),("A", 3),("A#", 2),("B-", 2),("B", 1),
                ("C", 0),("C#", -1),("D-", -1),
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     for file in glob.glob('Classical_Music_Midi/C_*'):
         try:
             song = np.array(midiToStatematrix(file))
-            song = get_song(song)
+            #song = get_song(song)
         
             filename = file.split('/')[-1]
             

@@ -27,37 +27,37 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
     batch_size = tf.shape(x)[0] 
     
     # Initialize parameters of model
-    Wuh = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden]), name="Wuh")
-    Wuv = tf.Variable(tf.zeros([n_hidden_recurrent, n_visible]), name="Wuv")
-    Wvu = tf.Variable(tf.zeros([n_visible, n_hidden_recurrent]), name="Wvu")
-    Wuu = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wuu")    
+    Wuh = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden], 0.0001), name="Wuh")
+    Wuv = tf.Variable(tf.random_normal([n_hidden_recurrent, n_visible], 0.0001), name="Wuv")
+    Wvu = tf.Variable(tf.random_normal([n_visible, n_hidden_recurrent], 0.0001), name="Wvu")
+    Wuu = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wuu")    
     bu = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bu")
 
     # RBM parameters
-    W   = tf.Variable(tf.zeros([n_visible, n_hidden]), name="W")
+    W   = tf.Variable(tf.random_normal([n_visible, n_hidden], 0.01), name="W")
     bh  = tf.Variable(tf.zeros([1, n_hidden]), name="bh")
     bv  = tf.Variable(tf.zeros([1, n_visible]), name="bv")
     
     # LSTM parameters
-    Wui = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wui")
-    Wqi = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wqi")
-    Wci = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wci")
+    Wui = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wui")
+    Wqi = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wqi")
+    Wci = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wci")
     bi = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bi")
     
-    Wuf = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wuf")
-    Wqf = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wqf")
-    Wcf = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wcf")
+    Wuf = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wuf")
+    Wqf = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wqf")
+    Wcf = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wcf")
     bf = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bf")
     
-    Wuc = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wuc")
-    Wqc = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wqc")
+    Wuc = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wuc")
+    Wqc = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wqc")
     bc = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bc")
     
-    Wuo = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wuo")
-    Wqo = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wqo")
-    Wco = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wco")
-    Wqv = tf.Variable(tf.zeros([n_hidden_recurrent, n_visible]), name="Wqv")
-    Wqh = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden]), name="Wqh")
+    Wuo = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wuo")
+    Wqo = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wqo")
+    Wco = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wco")
+    Wqv = tf.Variable(tf.random_normal([n_hidden_recurrent, n_visible], 0.0001), name="Wqv")
+    Wqh = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden], 0.0001), name="Wqh")
     bo = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bo")
 
     params =  [W, bv, bh, Wuh, Wuv, Wvu, Wuu, bu, Wui, Wqi, Wci, bi, 
@@ -131,11 +131,17 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
         Generates sequence of music.
         """
         batch_u, batch_q, batch_c = tf.scan(lstm_recurrence, x, initializer=lstm_args)
-        # Round down and get starting sequence
-        u_init = batch_u[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
-        q_init = batch_q[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
-        c_init = batch_c[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
         
+        # Round down and get starting sequence
+        if midi_parser.num_timesteps > 1:
+            u_init = batch_u[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+            q_init = batch_q[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+            c_init = batch_c[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+        else:
+            u_init = batch_u[start_length - 1, :, :]
+            q_init = batch_q[start_length - 1, :, :]
+            c_init = batch_c[start_length - 1, :, :]
+            
         i = tf.constant(1, tf.int32)
         k = tf.constant(num_timesteps)
         v_init = tf.zeros([1, n_visible])
@@ -161,8 +167,7 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
     batch_bv_t =  tf.reshape(tf.scan(bv_recurrence, [batch_u_t, batch_q_t], 
                                      tf.zeros([1, n_visible], tf.float32)),
                              [batch_size, n_visible])
-    
-    
+        
     # Get free energy cost
     cost = get_free_energy_cost(x, W, batch_bv_t, batch_bh_t, k=15)
     
@@ -191,6 +196,10 @@ class LSTM_RBM:
         opt_func = tf.train.AdamOptimizer(learning_rate = self.learning_rate)
         gradients = opt_func.compute_gradients(cost, self.training_vars)
         
+        # Clips gradients to prevent 
+        gradients = [(tf.clip_by_value(grad, -10., 10.), var) 
+                     for grad, var in gradients]
+
         self.update = opt_func.apply_gradients(gradients) # Update step
         
         self.generate = generate
@@ -201,8 +210,8 @@ class LSTM_RBM:
         Initialize the RBM weights from Contrastive Divergence
         """
         W, bv, bh = self.training_vars[:3]
-        rbm_update = cd_update(self.x, W, bv, bh, self.learning_rate)
-                
+        rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
+        
         saver = tf.train.Saver()
         with tf.Session() as sess:
             init = tf.global_variables_initializer()

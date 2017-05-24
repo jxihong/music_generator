@@ -27,14 +27,14 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
     batch_size = tf.shape(x)[0] 
     
     # Initialize parameters of model
-    Wuh = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden]), name="Wuh")
-    Wuv = tf.Variable(tf.zeros([n_hidden_recurrent, n_visible]), name="Wuv")
-    Wvu = tf.Variable(tf.zeros([n_visible, n_hidden_recurrent]), name="Wvu")
-    Wuu = tf.Variable(tf.zeros([n_hidden_recurrent, n_hidden_recurrent]), name="Wuu")    
+    Wuh = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden], 0.0001), name="Wuh")
+    Wuv = tf.Variable(tf.random_normal([n_hidden_recurrent, n_visible], 0.0001), name="Wuv")
+    Wvu = tf.Variable(tf.random_normal([n_visible, n_hidden_recurrent], 0.0001), name="Wvu")
+    Wuu = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent]), name="Wuu")    
     bu = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bu")
 
     # RBM parameters
-    W   = tf.Variable(tf.zeros([n_visible, n_hidden]), name="W")
+    W   = tf.Variable(tf.random_normal([n_visible, n_hidden], 0.01), name="W")
     bh  = tf.Variable(tf.zeros([1, n_hidden]), name="bh")
     bv  = tf.Variable(tf.zeros([1, n_visible]), name="bv")
     
@@ -81,8 +81,12 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
         Generates sequence of music.
         """
         batch_u = tf.scan(u_recurrence, x, initializer=u0)
+
         # Round down and get starting sequence
-        u_init = batch_u[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+        if midi_parser.num_timesteps > 1:
+            batch_u[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+        else:
+            u_init =  batch_u[start-length - 1, :, :]
         
         i = tf.constant(1, tf.int32)
         k = tf.constant(num_timesteps)
@@ -134,6 +138,7 @@ class RNN_RBM:
         
         opt_func = tf.train.AdamOptimizer(learning_rate = self.learning_rate)
         gradients = opt_func.compute_gradients(cost, self.training_vars)
+        
         # Clips gradients to prevent 
         gradients = [(tf.clip_by_value(grad, -10., 10.), var) 
                      for grad, var in gradients]
@@ -148,7 +153,7 @@ class RNN_RBM:
         Initialize the RBM weights from Contrastive Divergence
         """
         W, bh, bv = self.training_vars[:3]
-        rbm_update = cd_update(self.x, W, bv, bh, self.learning_rate)
+        rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
                 
         saver = tf.train.Saver()
         with tf.Session() as sess:

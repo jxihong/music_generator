@@ -4,20 +4,14 @@ from midi_parser import *
 num_timesteps = midi_parser.num_timesteps
 
 if __name__=='__main__':
-    # There are three different ways to get song data.
+    # There are two different ways to get song data.
     # (1) Directly from MIDI files
-    # (2) From statematrices that have reshaped with timesteps
-    # (3) From statematrices that are not reshaped yet
+    # (2) From statematrices that are not reshaped yet
     #
     # Uncomment the method you use
 
     
-    #songs = get_songs('Test_Midi')
-
-    songs = []
-    for file in glob.glob("Classical_Data/*.txt"):
-        song = np.genfromtxt(file)
-        songs.append(song)
+    songs = get_songs('Test_Midi')
     
     '''
     songs = []
