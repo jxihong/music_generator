@@ -27,7 +27,7 @@ if __name__=='__main__':
         
         for i in range(num_songs):
             music = sess.run(model.generate(300), 
-                             feed_dict={ model.x: start[:200], 
+                             feed_dict={ model.x: start[:201], 
                                          model.music: start[:start_length]})
             
             song_path = "generated/rnnrbm_{}".format(i)

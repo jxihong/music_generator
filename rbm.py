@@ -8,8 +8,8 @@ def sample(probs):
     """
     return tf.floor(probs + tf.random_uniform(tf.shape(probs), 0, 1))
 
-
-def gibbs_sample(x, W, bv, bh, k):
+    
+def gibbs_sample(x, W, bv, bh, k, keep_prob=0.5):
     """
     Runs Gibbs Sampling for k steps from the probability distribution of the RBM defined by W, bh, bv
     """
@@ -17,10 +17,17 @@ def gibbs_sample(x, W, bv, bh, k):
         """
         Run a single step
         """
-        #Propagate the visible values to get the hidden values
-        h_k = sample(tf.sigmoid(tf.matmul(x_k, W) + bh))
-        #Propagate the hidden values to get the visible values
-        x_k = sample(tf.sigmoid(tf.matmul(h_k, tf.transpose(W)) + bv))
+        # Apply dropout
+        x_drop_out = tf.nn.dropout(x_k, keep_prob)
+
+        # Propagate the visible values to get the hidden values
+        h_k = sample(tf.sigmoid(tf.matmul(x_drop_out, W) + bh))
+        # Apply dropout
+        h_drop_out = tf.nn.dropout(h_k, keep_prob)
+
+        # Propagate the hidden values to get the visible values
+        x_k = sample(tf.sigmoid(tf.matmul(h_drop_out, tf.transpose(W)) + bv))
+        
         return i + 1, k, x_k
     
     i = tf.constant(0) #counter
@@ -34,15 +41,21 @@ def gibbs_sample(x, W, bv, bh, k):
     return x_sample
 
 
-def gibbs_sample_converge(x, W, bv, bh):
+def gibbs_sample_converge(x, W, bv, bh, keep_prob=0.5):
     """
     Run Gibbs Sampling until convergence on RBM.
     """
     def step(x, stop_condition):
         x_prev = x
+        
+        # Apply dropout
+        x_drop_out = tf.nn.dropout(x, keep_prob)
         #Propagate the visible values to sample the hidden values
-        h_k = sample(tf.sigmoid(tf.matmul(x, W) + bh))
+        h_k = sample(tf.sigmoid(tf.matmul(x_drop_out, W) + bh))
+        
+        
         #Propagate the hidden values to sample the visible values
+        h_drop_out = tf.nn.dropout(h_k, keep_prob)
         x = tf.sigmoid(tf.matmul(h_k, tf.transpose(W)) + bv)
             
         # Convergence of probability vectors
@@ -96,11 +109,15 @@ def get_free_energy_cost(x, W, bv, bh, k):
     """
     #First, draw a sample from the RBM
     x_sample = gibbs_sample(x, W, bv, bh, k)
-
+    
     def free_energy(v):
         #The function computes the free energy of a visible vector. 
-        return (-tf.reduce_sum(tf.log(1 + tf.exp(tf.matmul(v, W) + bh)), 1) 
-                 - tf.matmul(v, tf.transpose(bv)))
+        wv_b = tf.matmul(v, W) + bh
+        hidden_term = tf.reduce_sum(tf.log(1 + tf.exp(wv_b)), 1)
+        vbias_term = tf.matmul(v, tf.transpose(bv))
+        
+        return -hidden_term - vbias_term
+        
 
     #The cost is based on the difference in free energy between x and xsample
     cost = tf.reduce_mean(tf.sub(free_energy(x), free_energy(x_sample)))

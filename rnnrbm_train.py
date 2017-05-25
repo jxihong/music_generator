@@ -11,11 +11,10 @@ if __name__=='__main__':
     # Uncomment the method you use
 
     
-    songs = get_songs('Test_Midi')
+    #songs = get_songs('Test_Midi')
     
-    '''
     songs = []
-    for file in glob.glob("Jazz_Data/*_melody.txt"):
+    for file in glob.glob("Classical_Data/*txt")[:50]:
         song = np.genfromtxt(file)
         try:
             song = song[:int(np.floor((song.shape[0]/num_timesteps) * num_timesteps))]
@@ -25,16 +24,15 @@ if __name__=='__main__':
                 songs.append(song)
         except:
             continue
-    '''
-
+    
     print('{} songs processed'.format(len(songs)))
     
     # Hyperparameter
     n_hidden = 150
     n_hidden_recurrent = 100
     batch_size = 100
-    n_epochs = 200
-
+    n_epochs = 400
+    
     model = RNN_RBM(n_hidden, n_hidden_recurrent, batch_size, n_epochs)
     
     model.initialize_weights(songs)

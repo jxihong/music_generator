@@ -2,11 +2,10 @@ from lstmrbm import *
 from midi_parser import *
 
 if __name__=='__main__':
-    songs = get_songs('Test_Midi')
+    #songs = get_songs('Test_Midi')
     
-    '''
     songs = []
-    for file in glob.glob("Jazz_Data/*_melody.txt"):
+    for file in glob.glob("Classical_Data/*.txt")[:5]:
         song = np.genfromtxt(file)
         try:
             song = song[:int(np.floor((song.shape[0]/num_timesteps) * num_timesteps))]
@@ -16,8 +15,7 @@ if __name__=='__main__':
                 songs.append(song)
         except:
             continue
-    '''
-
+        
     print('{} songs processed'.format(len(songs)))
     
     # Hyperparameter
