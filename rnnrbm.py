@@ -82,13 +82,14 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
     def get_cross_entropy(v_t, bv_t):
         """
         Returns cross-entropy loss.
-        """
-        epsilon = 1e-10
-        
-        term1 = v_t * tf.log(epsilon + tf.sigmoid(bv_t))
-        term2 = (1 - v_t) * tf.log(1 + epsilon - tf.sigmoid(bv_t))
+        """        
+        ce = v_t * tf.log(epsilon + tf.sigmoid(bv_t)) + \
+            (1 - v_t) * tf.log(1 + epsilon - tf.sigmoid(bv_t))
+        ce = tf.where(tf.is_nan(ce), tf.zeros_like(ce), ce)
+        ce = tf.where(tf.is_inf(ce), tf.zeros_like(ce), ce)
 
-        return tf.reduce_mean(tf.reduce_sum(-term1 - term2, 1))
+        
+        return tf.reduce_mean(tf.reduce_sum(ce, 1))
                
  
     def generate_music(num_timesteps, x=x, music_init=music, n_visible=n_visible,
@@ -209,7 +210,7 @@ class RNN_RBM:
                 
         opt_func = tf.train.AdamOptimizer(learning_rate = self.learning_rate)
         gradients = opt_func.compute_gradients(self.cross_entropy, [Wvu, Wuu, bu, u0, Wuv, bv])
-        gradients = [(tf.clip_by_value(grad, -1., 1.), var) 
+        gradients = [(tf.clip_by_value(grad, -10., 10.), var) 
                      for grad, var in gradients]
 
         rnn_update = opt_func.apply_gradients(gradients)
