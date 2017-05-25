@@ -29,9 +29,9 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
     
     # Initialize parameters of model
     Wuh = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden], 0.0001), name="Wuh")
-    Wuv = tf.Variable(tf.random_normal([n_hidden_recurrent, n_visible], 0.0001), name="Wuv")
+    Wuv = tf.Variable(tf.random_normal([n_hidden_recurrent, n_visible], 0.0001),name="Wuv")
     Wvu = tf.Variable(tf.random_normal([n_visible, n_hidden_recurrent], 0.0001), name="Wvu")
-    Wuu = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent]), name="Wuu")    
+    Wuu = tf.Variable(tf.random_normal([n_hidden_recurrent, n_hidden_recurrent], 0.0001), name="Wuu")    
     bu = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="bu")
 
     # RBM parameters
@@ -42,7 +42,7 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
     u0  = tf.Variable(tf.zeros([1, n_hidden_recurrent]), name="u0")
     
     batch_bh_t = tf.Variable(tf.zeros([1, n_hidden]), name="batch_bh_t")
-    batch_bv_t = tf.Variable(tf.zeros([1, n_visible]), name="batch_bv_t")
+    batch_bv_t = tf.Variable(tf.zeros([1, n_visible]),name="batch_bv_t")
     
     music = tf.placeholder(tf.float32, [None, n_visible])
     
@@ -83,7 +83,7 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
         """
         Returns cross-entropy loss.
         """
-        epsilon = 1e-6
+        epsilon = 1e-10
         
         term1 = v_t * tf.log(epsilon + tf.sigmoid(bv_t))
         term2 = (1 - v_t) * tf.log(1 + epsilon - tf.sigmoid(bv_t))
@@ -128,11 +128,14 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
     # Get free energy cost
     cost = get_free_energy_cost(x, W, batch_bv_t, batch_bh_t, k=15)
     
-    # Get cross-entropies for initialization and monitoring
-    cross_entropy = get_cross_entropy(x, batch_bv_t)
+    # Get pseudo likelihoods for monitoring
+    monitor = get_pseudo_log_likelihood(x, W, batch_bv_t, batch_bh_t, k=15)
     
-    return x, cost, cross_entropy, generate_music, W, bh, bv, lr, Wuh, Wuv, Wvu, Wuu, bu,\
-        u0, music
+    # Get cross entropy
+    cross_entropy = get_cross_entropy(x, batch_bv_t)
+
+    return x, cost, monitor, cross_entropy, generate_music, W, bh, bv, lr, Wuh, Wuv, \
+        Wvu, Wuu, bu, u0, music
 
 
 class RNN_RBM:
@@ -144,7 +147,8 @@ class RNN_RBM:
         """
         Constructs a RNN-RBM with training and sequence generation functions.
         """
-        self.x, self.cost, self.cross_entropy, generate, W, bh, bv, self.learning_rate, \
+        self.x, self.cost, self.monitor, self.cross_entropy, generate, W, bh, bv, \
+            self.learning_rate, \
             Wuh, Wuv, Wvu, Wuu, bu, u0, self.music = build_rnnrbm(n_hidden, n_hidden_recurrent)
         
         self.n_epochs = n_epochs
@@ -157,7 +161,7 @@ class RNN_RBM:
         gradients = opt_func.compute_gradients(self.cost, self.training_vars)
         
         # Clips gradients to prevent 
-        gradients = [(tf.clip_by_value(grad, -1., 1.), var) 
+        gradients = [(tf.clip_by_value(grad, -10., 10.), var) 
                      for grad, var in gradients]
         
         self.update = opt_func.apply_gradients(gradients) # Update step
@@ -165,7 +169,36 @@ class RNN_RBM:
         self.generate = generate
         
         
-    def initialize_weights(self, songs, save="parameter_checkpoints/rnnrbm_initial.ckpt"):
+    def initialize_weights1(self, songs, save="parameter_checkpoints/rnnrbm_initial.ckpt"):
+        """
+        Initialize the RBM weights from Contrastive Divergence.
+        """
+        W, bh, bv, Wuh, Wuv, Wvu, Wuu, bu, u0 = self.training_vars
+        
+        rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
+        
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            
+            for epoch in range(100):
+                start = time.time()
+                for song in songs:
+                    for i in range(1, len(song), self.batch_size):
+                        alpha = min(0.001, 0.1/float(i))
+                        
+                        # Update RBM parameters using CD
+                        batch = song[i: i + self.batch_size]
+                        sess.run(rbm_update, feed_dict={self.x: batch,
+                                                        self.learning_rate:alpha})
+                        
+                print("Initialization Epoch: {}/{}. Time: {}".format(epoch, 100,
+                                                                     time.time()-start))
+            save_path = saver.save(sess, save)
+
+            
+    def initialize_weights2(self, songs, save="parameter_checkpoints/rnnrbm_initial2.ckpt"):
         """
         Initialize the RBM weights from Contrastive Divergence, and RNN weights using
         standard SGD on cross-entropy loss.
@@ -174,11 +207,11 @@ class RNN_RBM:
         
         rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
                 
-        
         opt_func = tf.train.AdamOptimizer(learning_rate = self.learning_rate)
         gradients = opt_func.compute_gradients(self.cross_entropy, [Wvu, Wuu, bu, u0, Wuv, bv])
         gradients = [(tf.clip_by_value(grad, -1., 1.), var) 
                      for grad, var in gradients]
+
         rnn_update = opt_func.apply_gradients(gradients)
                         
         saver = tf.train.Saver()
@@ -205,9 +238,9 @@ class RNN_RBM:
                         
                         entropies.append(cross_entropy)
 
-                print("Initialization Epoch: {}/{}. Cross Entropy: {}. Time: {}".format(epoch, self.n_epochs,
-                                                                                        np.mean(entropies), time.time()-start))
-                
+                print("Initialization Epoch: {}/{}. Cost: {}. Time: {}".format(epoch, 100,
+                                                                               np.mean(entropies), 
+                                                                               time.time()-start))
             save_path = saver.save(sess, save)
 
             
@@ -228,23 +261,23 @@ class RNN_RBM:
                 
             for epoch in range(self.n_epochs):
                 start = time.time()
+                lls= []
                 costs = []
-                entropies = []
                 for song in songs:
                     for i in range(1, len(song), self.batch_size):
                         batch = song[i: i + self.batch_size]
                         # Adaptive learning rate
-                        alpha = min(0.01, 0.1/float(i))
-                        _, cost, cross_entropy = sess.run([self.update, self.cost, self.cross_entropy], 
-                                                          feed_dict={self.x:batch, 
-                                                                     self.learning_rate:alpha})
+                        alpha = min(0.001, 0.1/float(i))
+                        _, ll, cost = sess.run([self.update, self.monitor, self.cost], 
+                                               feed_dict={self.x:batch, 
+                                                          self.learning_rate:alpha})
+                        lls.append(ll)
                         costs.append(cost)
-                        entropies.append(cross_entropy)
                         
-                print("Epoch: {}/{}. Free Energy: {}. Cross Entropy: {}. Time: {}".format(epoch, self.n_epochs,
-                                                                                          np.mean(costs), np.mean(entropies),
-                                                                                          time.time() - start))
-                
+                print("Epoch: {}/{}. Likelihood: {}. Cost: {}. Time: {}".format(epoch, self.n_epochs,
+                                                                                np.mean(lls),
+                                                                                np.mean(costs),
+                                                                                time.time()-start))
                 if (epoch + 1) % 50 == 0:
                     saver.save(sess, "parameter_checkpoints/rnnrbm_epoch_{}.ckpt".format(epoch + 1))
             

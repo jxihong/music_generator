@@ -87,7 +87,7 @@ def cd_update(x, W, bv, bh, k, learning_rate=1e-2):
     h_sample = sample(tf.sigmoid(tf.matmul(x_sample, W) + bh))
 
     #Update the values of W, bh, and bv
-    size_x = tf.cast(tf.shape(x)[0], tf.float32)
+    size_x = tf.cast(tf.shape(x)[0], tf.float64)
 
     W_update  = tf.mul(learning_rate/size_x, 
                        tf.sub(tf.matmul(tf.transpose(x), h), \
@@ -113,12 +113,32 @@ def get_free_energy_cost(x, W, bv, bh, k):
     def free_energy(v):
         #The function computes the free energy of a visible vector. 
         wv_b = tf.matmul(v, W) + bh
-        hidden_term = tf.reduce_sum(tf.log(1 + tf.exp(wv_b)), 1)
+        hidden_term = tf.log(1 + tf.exp(wv_b))
+        hidden_term = tf.where(tf.is_nan(hidden_term), tf.zeros_like(hidden_term), hidden_term)
+        hidden_term = tf.where(tf.is_inf(hidden_term), tf.zeros_like(hidden_term), hidden_term)
+        
         vbias_term = tf.matmul(v, tf.transpose(bv))
         
-        return -hidden_term - vbias_term
+        return -tf.reduce_sum(hidden_term, 1) - vbias_term
         
 
     #The cost is based on the difference in free energy between x and xsample
     cost = tf.reduce_mean(tf.sub(free_energy(x), free_energy(x_sample)))
     return cost
+
+
+def get_pseudo_log_likelihood(x, W, bv, bh, k):
+    """
+    Get pseudo log-likehood of a sample.
+    """
+    # Propagate the visible values to get the hidden values
+    h_k = tf.sigmoid(tf.matmul(x, W) + bh)
+    # Get x before sampling
+    x_sample = tf.sigmoid(tf.matmul(h_k, tf.transpose(W)) + bv)
+    
+    ll = x * tf.log(x_sample) + (1 - x) * tf.log(1 - x_sample)
+    ll = tf.where(tf.is_nan(ll), tf.zeros_like(ll), ll)
+    ll = tf.where(tf.is_inf(ll), tf.zeros_like(ll), ll)
+    
+    return tf.reduce_mean(tf.reduce_sum(ll, 1))
+
