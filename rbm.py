@@ -87,7 +87,7 @@ def cd_update(x, W, bv, bh, k, learning_rate=1e-2):
     h_sample = sample(tf.sigmoid(tf.matmul(x_sample, W) + bh))
 
     #Update the values of W, bh, and bv
-    size_x = tf.cast(tf.shape(x)[0], tf.float64)
+    size_x = tf.cast(tf.shape(x)[0], tf.float32)
 
     W_update  = tf.mul(learning_rate/size_x, 
                        tf.sub(tf.matmul(tf.transpose(x), h), \

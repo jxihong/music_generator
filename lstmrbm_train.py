@@ -5,7 +5,7 @@ if __name__=='__main__':
     #songs = get_songs('Test_Midi')
     
     songs = []
-    for file in glob.glob("Classical_Data/*.txt")[:5]:
+    for file in glob.glob("Classical_Data/*.txt")[:50]:
         song = np.genfromtxt(file)
         try:
             song = song[:int(np.floor((song.shape[0]/num_timesteps) * num_timesteps))]
@@ -22,11 +22,11 @@ if __name__=='__main__':
     n_hidden = 150
     n_hidden_recurrent = 100
     batch_size = 100
-    n_epochs = 200
+    n_epochs = 400
 
     model = LSTM_RBM(n_hidden, n_hidden_recurrent, batch_size, n_epochs)
     
-    model.initialize_weights(songs)
+    model.initialize_weights1(songs)
     model.fit(songs)
     
     

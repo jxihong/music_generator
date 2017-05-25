@@ -35,7 +35,7 @@ if __name__=='__main__':
     
     model = RNN_RBM(n_hidden, n_hidden_recurrent, batch_size, n_epochs)
     
-    model.initialize_weights2(songs)
+    #model.initialize_weights1(songs)
     model.fit(songs)
     
     

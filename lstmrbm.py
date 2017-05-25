@@ -15,7 +15,7 @@ n_visible          = 2 * note_range * midi_parser.num_timesteps #The size RBM vi
 # Tensorflow code was semi-adapted from the site's Theanos code. 
 # Source: http://deeplearning.net/tutorial/rnnrbm.html
 
-def build_lstmrbm(n_hidden, n_hidden_recurrent):
+def build_lstmrbm(n_hidden, n_hidden_recurrent, reg = 0.01):
     """
     Builds a LSTM-RBM model.
     
@@ -130,13 +130,13 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
         """
         Returns cross-entropy loss.
         """
-        epsilon = 1e-6
-        
-        term1 = v_t * tf.log(epsilon + tf.sigmoid(bv_t))
-        term2 = (1 - v_t) * tf.log(1 + epsilon - tf.sigmoid(bv_t))
-
-        return tf.reduce_mean(tf.reduce_sum(-term1 - term2, 1))
-
+        ce = - v_t * tf.log(tf.sigmoid(bv_t)) - \
+            (1 - v_t) * tf.log(1 - tf.sigmoid(bv_t))
+        ce = tf.where(tf.is_nan(ce), tf.zeros_like(ce), ce)
+        ce = tf.where(tf.is_inf(ce), tf.zeros_like(ce), ce)
+    
+        return tf.reduce_mean(tf.reduce_sum(ce, 1))
+    
     
     def generate_music(num_timesteps, x=x, music_init=music, n_visible=n_visible,
                        lstm_args=(u0, q0, c0), start_length=200):
@@ -146,15 +146,10 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
         batch_u, batch_q, batch_c = tf.scan(lstm_recurrence, x, initializer=lstm_args)
         
         # Round down and get starting sequence
-        if midi_parser.num_timesteps > 1:
-            u_init = batch_u[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
-            q_init = batch_q[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
-            c_init = batch_c[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
-        else:
-            u_init = batch_u[start_length - 1, :, :]
-            q_init = batch_q[start_length - 1, :, :]
-            c_init = batch_c[start_length - 1, :, :]
-            
+        u_init = batch_u[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+        q_init = batch_q[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+        c_init = batch_c[int(np.floor(start_length/midi_parser.num_timesteps)), :, :]
+        
         i = tf.constant(1, tf.int32)
         k = tf.constant(num_timesteps)
         v_init = tf.zeros([1, n_visible])
@@ -183,11 +178,17 @@ def build_lstmrbm(n_hidden, n_hidden_recurrent):
         
     # Get free energy cost
     cost = get_free_energy_cost(x, W, batch_bv_t, batch_bh_t, k=15)
+    # Add L2 regularization
+    regularizer = tf.reduce_mean([tf.nn.l2_loss(param) for param in params])
+    cost = tf.reduce_sum(cost + reg * regularizer)
     
     # Get cross-entropies for initialization and monitoring
     cross_entropy = get_cross_entropy(x, batch_bv_t)
-
-    return x, cost, cross_entropy, generate_music, params, u0, q0, c0, lr, music
+    
+    # Get pseudo likelihoods for monitoring
+    monitor = get_pseudo_log_likelihood(x, W, batch_bv_t, batch_bh_t, k=15)
+    
+    return x, cost, monitor, cross_entropy, generate_music, params, u0, q0, c0, lr, music
 
 
 class LSTM_RBM:
@@ -199,7 +200,7 @@ class LSTM_RBM:
         """
         Constructs a RNN-RBM with training and sequence generation functions.
         """
-        self.x, self.cost, self.cross_entropy, generate, params, u0, q0, c0, \
+        self.x, self.cost, self.monitor, self.cross_entropy, generate, params, u0, q0, c0, \
             self.learning_rate, self.music = build_lstmrbm(n_hidden, n_hidden_recurrent)
 
         self.n_epochs = n_epochs
@@ -212,7 +213,7 @@ class LSTM_RBM:
         gradients = opt_func.compute_gradients(self.cost, self.training_vars)
         
         # Clips gradients to prevent 
-        gradients = [(tf.clip_by_value(grad, -1., 1.), var) 
+        gradients = [(tf.clip_by_value(grad, -10., 10.), var) 
                      for grad, var in gradients]
 
         self.update = opt_func.apply_gradients(gradients) # Update step
@@ -220,9 +221,37 @@ class LSTM_RBM:
         self.generate = generate
         
         
-    def initialize_weights(self, songs, save="parameter_checkpoints/lstmrbm_initial.ckpt"):
+    def initialize_weights1(self, songs, save="parameter_checkpoints/lstmrbm_initial1.ckpt"):
         """
         Initialize the RBM weights from Contrastive Divergence
+        """
+        W, bv, bh = self.training_vars[:3]
+        
+        rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
+        
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+
+            for epoch in range(100):
+                for song in songs:
+                    for i in range(1, len(song), self.batch_size):
+                        alpha = min(0.001, 0.1/float(i))
+
+                        # Update RBM parameters using CD
+                        batch = song[i: i + self.batch_size]
+                        sess.run(rbm_update, feed_dict={self.x: batch,
+                                                        self.learning_rate:alpha})
+                        
+                print("Initialization Epoch: {}/{}".format(epoch, 100))
+
+            save_path = saver.save(sess, save)
+        
+    def initialize_weights2(self, songs, save="parameter_checkpoints/lstmrbm_initial2.ckpt"):
+        """
+        Initialize the RBM weights from Contrastive Divergence, and LSTM parameters using
+        cross entropy cost.
         """
         W, bv, bh = self.training_vars[:3]
         
@@ -233,7 +262,7 @@ class LSTM_RBM:
         
         # Clip gradients, need to check for None this time
         gradients = [
-            (None, var) if grad is None else (tf.clip_by_value(grad, -1., 1.), var)
+            (None, var) if grad is None else (tf.clip_by_value(grad, -10., 10.), var)
             for grad, var in gradients]
         rnn_update = opt_func.apply_gradients(gradients)
 
@@ -242,7 +271,8 @@ class LSTM_RBM:
             init = tf.global_variables_initializer()
             sess.run(init)
 
-            for epoch in range(self.n_epochs):
+            for epoch in range(100):
+                start = time.time()
                 entropies = []
                 for song in songs:
                     for i in range(1, len(song), self.batch_size):
@@ -260,13 +290,14 @@ class LSTM_RBM:
                      
                         entropies.append(cross_entropy)
 
-                print("Initialization Epoch: {}/{}. Cross Entropy: {}".format(epoch, self.n_epochs,
-                                                                                      np.mean(entropies)))
+                print("Initialization Epoch: {}/{}. Cross Entropy: {}. Time: {}".format(epoch, 100,
+                                                                                        np.mean(entropies),
+                                                                                        time.time() - start))
             save_path = saver.save(sess, save)
             
 
     def fit(self, songs, 
-            checkpoint="parameter_checkpoints/lstmrbm_initial.ckpt", 
+            checkpoint="parameter_checkpoints/lstmrbm_initial1.ckpt", 
             save="parameter_checkpoints/lstmrbm_final.ckpt"):
         """
         Train RNN-RBM via SGD on parsed MIDI matrices.
@@ -279,24 +310,27 @@ class LSTM_RBM:
             # Load initial weights of model
             if len(checkpoint) > 1:
                 saver.restore(sess, checkpoint)
-                
+            
             for epoch in range(self.n_epochs):
+                start = time.time()
+                lls = []
                 costs = []
-                entropies = []
                 for song in songs:
                     for i in range(1, len(song), self.batch_size):
                         batch = song[i: i + self.batch_size]
                         # Adaptive learning rate
                         alpha = min(0.001, 0.1/float(i))
-                        _, cost, cross_entropy  = sess.run([self.update, self.cost, self.cross_entropy], 
-                                                           feed_dict={self.x:batch, 
-                                                                      self.learning_rate:alpha})
-                        costs.append(cost)
-                        entropies.append(cross_entropy)
+                        _, ll, cost  = sess.run([self.update, self.monitor, self.cost], feed_dict={self.x:batch, 
+                                                                                                   self.learning_rate:alpha})
                         
-                        print("Epoch: {}/{}. Free Energy: {}. Cross Entropy: {}".format(epoch, self.n_epochs, 
-                                                                                        np.mean(costs), np.mean(entropies)))
-                
+                        lls.append(ll)
+                        costs.append(cost)
+                        
+                print("Epoch: {}/{}. Likelihood: {}. Cost: {}. Time: {}".format(epoch, self.n_epochs, 
+                                                                                np.mean(lls),
+                                                                                np.mean(costs),
+                                                                                time.time() - start))
+                      
                 if (epoch + 1) % 50 == 0:
                     saver.save(sess, "parameter_checkpoints/lstmrbm_epoch_{}.ckpt".format(epoch + 1))
                     

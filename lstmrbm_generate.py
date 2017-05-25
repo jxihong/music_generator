@@ -7,7 +7,7 @@ from midi_parser import *
 # Extracts first timesteps as primer for generation
 song_primer = 'Classical_Music_Midi/C_jigs_simple_chords_129.mid'
 # Saved weights for trainged rnnrbm
-model_path = 'parameter_checkpoints/lstmrbm_epoch_50.ckpt'
+model_path = 'parameter_checkpoints/lstmrbm_epoch_200.ckpt'
 
 if __name__=='__main__':
     num_songs = 5
@@ -24,7 +24,7 @@ if __name__=='__main__':
         
         for i in range(num_songs):
             music = sess.run(model.generate(300), 
-                             feed_dict={ model.x: start[:200], 
+                             feed_dict={ model.x: start[:201], 
                                          model.music: start[:start_length]})
             
             song_path = "generated/lstmrbm_{}".format(i)
