@@ -75,6 +75,7 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
 
         u_t  = (tf.tanh(bu + tf.matmul(v_t, Wvu) + tf.matmul(u_tm1, Wuu)))
         
+       
         music = tf.concat(0, [music, v_t])
         return i + 1, k, v_t, u_t, music
     
@@ -186,7 +187,7 @@ class RNN_RBM:
                 start = time.time()
                 for song in songs:
                     for i in range(1, len(song), self.batch_size):
-                        alpha = min(0.001, 0.1/float(i))
+                        alpha = min(0.01, 0.1/float(i))
                         
                         # Update RBM parameters using CD
                         batch = song[i: i + self.batch_size]
@@ -267,7 +268,7 @@ class RNN_RBM:
                     for i in range(1, len(song), self.batch_size):
                         batch = song[i: i + self.batch_size]
                         # Adaptive learning rate
-                        alpha = min(0.001, 0.1/float(i))
+                        alpha = min(0.01, 0.1/float(i))
                         _, ll, cost = sess.run([self.update, self.monitor, self.cost], 
                                                feed_dict={self.x:batch, 
                                                           self.learning_rate:alpha})
@@ -283,3 +284,32 @@ class RNN_RBM:
             
             saver.save(sess, save)
 
+
+    def fine_tune_weights(self, songs,
+                          model_path="parameter_checkpoints/rnnrbm_final.skpt"):
+        """
+        Tune the weights to match a specific song.
+        """
+        W, bh, bv, Wuh, Wuv, Wvu, Wuu, bu, u0 = self.training_vars
+        
+        rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
+        
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            
+            for epoch in range(100):
+                start = time.time()
+                for song in songs:
+                    for i in range(1, len(song), self.batch_size):
+                        alpha = min(0.01, 0.1/float(i))
+                        
+                        # Update RBM parameters using CD
+                        batch = song[i: i + self.batch_size]
+                        sess.run(rbm_update, feed_dict={self.x: batch,
+                                                        self.learning_rate:alpha})
+                        
+                print("Initialization Epoch: {}/{}. Time: {}".format(epoch, 100,
+                                                                     time.time()-start))
+            save_path = saver.save(sess, save)

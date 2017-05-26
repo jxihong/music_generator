@@ -11,8 +11,8 @@ if __name__=='__main__':
     # Uncomment the method you use
 
     
-    #songs = get_songs('Test_Midi')
-    
+    songs = get_songs('Test_Midi')
+    '''
     songs = []
     for file in glob.glob("Classical_Data/*txt")[:50]:
         song = np.genfromtxt(file)
@@ -24,7 +24,7 @@ if __name__=='__main__':
                 songs.append(song)
         except:
             continue
-    
+    '''
     print('{} songs processed'.format(len(songs)))
     
     # Hyperparameter

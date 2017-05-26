@@ -9,31 +9,30 @@ import random
 import json
 import pickle
 
+import math
 
-def build_model(window, input_size):
+def sigmoid(x):
+  return 1 / (1 + math.exp(-x))
+
+
+def build_model(window, len_notes):
     model = Sequential()
-    model.add(LSTM(512, return_sequences=True, input_shape=(window, input_size)))
+    model.add(LSTM(512, return_sequences=True, input_shape=(window, len_notes)))
     model.add(Dropout(0.2))
     model.add(LSTM(512, return_sequences=False))
     model.add(Dropout(0.2))
-    model.add(Dense(len_chars))
-    model.add(Activation('softmax'))
-
-    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+    model.add(Dense(len_notes))
+    model.add(Activation('sigmoid'))
     
+    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
     return model
 
 
-def sample(preds, temperature=1.0):
-    # Helper function to sample an index from a probability array
-    with np.errstate(divide='ignore'):
-        preds = np.asarray(preds).astype('float64')
-
-        preds = np.log(preds) / temperature        
-        # Fix division by 0
-        preds[preds == np.inf] = 0
-
-        exp_preds = np.exp(preds)
-        preds =  exp_preds / np.sum(exp_preds)
+def sample(preds):
+  # Helper function to sample an index from a probability array
+  preds = np.asarray(preds).astype('float64')
+  
+  preds[preds == np.inf] = 0      
+  return np.floor(preds + np.random.uniform(0, 1, preds.shape))
     
-        return np.argmax(np.random.multinomial(1, preds, 1))
+        

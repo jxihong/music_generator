@@ -247,6 +247,7 @@ class LSTM_RBM:
                 print("Initialization Epoch: {}/{}".format(epoch, 100))
 
             save_path = saver.save(sess, save)
+
         
     def initialize_weights2(self, songs, save="parameter_checkpoints/lstmrbm_initial2.ckpt"):
         """
