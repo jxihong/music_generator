@@ -90,7 +90,7 @@ def build_rnnrbm(n_hidden, n_hidden_recurrent):
         ce = tf.where(tf.is_inf(ce), tf.zeros_like(ce), ce)
         
         return tf.reduce_mean(tf.reduce_sum(ce, 1))
- 
+    
     
     def generate_music(num_timesteps, x=x, music_init=music, n_visible=n_visible,
                        u0=u0, start_length=200):
@@ -285,8 +285,10 @@ class RNN_RBM:
             saver.save(sess, save)
 
 
+    
     def fine_tune_weights(self, songs,
-                          model_path="parameter_checkpoints/rnnrbm_final.skpt"):
+                          model_path="parameter_checkpoints/rnnrbm_final.ckpt",
+                          save = "parameter_checkpoints/rnnrbm_final_tuned.ckpt"):
         """
         Tune the weights to match a specific song.
         """
@@ -294,22 +296,26 @@ class RNN_RBM:
         
         rbm_update = cd_update(self.x, W, bv, bh, 1, self.learning_rate)
         
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(self.training_vars)
         with tf.Session() as sess:
             init = tf.global_variables_initializer()
             sess.run(init)
+           
+            saver.restore(sess, model_path)
             
+            n_hidden = tf.shape(W)[1]
+            W = tf.Variable(tf.random_normal([n_visible, n_hidden], 0.01), name="W")
             for epoch in range(100):
                 start = time.time()
                 for song in songs:
                     for i in range(1, len(song), self.batch_size):
                         alpha = min(0.01, 0.1/float(i))
                         
-                        # Update RBM parameters using CD
+                        # Update RBM weight W using CD
                         batch = song[i: i + self.batch_size]
-                        sess.run(rbm_update, feed_dict={self.x: batch,
-                                                        self.learning_rate:alpha})
+                        sess.run(rbm_update[0], feed_dict={self.x: batch,
+                                                           self.learning_rate:alpha})
                         
-                print("Initialization Epoch: {}/{}. Time: {}".format(epoch, 100,
-                                                                     time.time()-start))
+                print("Fine-Tune Epoch: {}/{}. Time: {}".format(epoch, 100,
+                                                                time.time()-start))
             save_path = saver.save(sess, save)

@@ -21,12 +21,10 @@ song_primer = 'Test_Midi/PianoMan.mid'
 if __name__=='__main__':
     window = 10
 
-    #json_file = open('parameter_checkpoints/rnn.json', 'r')
-    #loaded_model_json = json_file.read()
-    #json_file.close()
-    #loaded_model = model_from_json(loaded_model_json)
-    
-    loaded_model = build_model(window, n_visible)
+    json_file = open('parameter_checkpoints/rnn.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
     
     # load weights into new model
     loaded_model.load_weights("parameter_checkpoints/rnn_final.h5")

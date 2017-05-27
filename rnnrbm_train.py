@@ -11,31 +11,30 @@ if __name__=='__main__':
     # Uncomment the method you use
 
     
-    songs = get_songs('Test_Midi')
-    '''
+    jazz_songs = get_songs('Jazz_Music_Midi')
+    
     songs = []
-    for file in glob.glob("Classical_Data/*txt")[:50]:
+    for file in glob.glob("Classical_Data/*chords*.txt"):
         song = np.genfromtxt(file)
         try:
             song = song[:int(np.floor((song.shape[0]/num_timesteps) * num_timesteps))]
             # Reshape into blocks of num_timesteps
             song = np.reshape(song, [song.shape[0]/num_timesteps, song.shape[1]*num_timesteps])
-            if song.shape[0] > 50:
+            if song.shape[0] > 50/num_timesteps:
                 songs.append(song)
         except:
-            continue
-    '''
+            pass
     print('{} songs processed'.format(len(songs)))
     
     # Hyperparameter
     n_hidden = 150
     n_hidden_recurrent = 100
     batch_size = 100
-    n_epochs = 400
+    n_epochs = 200
     
     model = RNN_RBM(n_hidden, n_hidden_recurrent, batch_size, n_epochs)
     
-    #model.initialize_weights1(songs)
+    model.initialize_weights1(songs)
     model.fit(songs)
-    
+    #model.fine_tune_weights(jazz_songs)
     

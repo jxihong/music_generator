@@ -94,12 +94,13 @@ def pad_track_list(stateList):
     '''
     trackList = stateList
     lengths = []
-    zeros = np.zeros(156)
     for i in range(0, len(trackList)):
         lengths.append(len(trackList[i]))
+    
     longest_track = lengths.index(max(lengths))
     max_length = max(lengths)
+    
     for i in range(0, len(trackList)):
-        while(len(trackList[i]) < max_length):
-            trackList[i] = np.vstack((trackList[i], [zeros]))
+        zeros = np.zeros((max_length - len(trackList[i]), 156))
+        trackList[i] = np.vstack((trackList[i], [zeros]))
     return trackList
