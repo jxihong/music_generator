@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+
 def sample(probs):
     """
     Takes in a vector of probabilities, and returns a random vector of 0s and 1s 
@@ -8,7 +9,7 @@ def sample(probs):
     """
     return tf.floor(probs + tf.random_uniform(tf.shape(probs), 0, 1))
 
-    
+
 def gibbs_sample(x, W, bv, bh, k, keep_prob=0.5):
     """
     Runs Gibbs Sampling for k steps from the probability distribution of the RBM defined by W, bh, bv

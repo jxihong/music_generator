@@ -67,7 +67,31 @@ def get_songs(path):
 def write_song(path, song):
     #Reshape song into statematrix
     song = np.reshape(song, (song.shape[0]*num_timesteps, 2*span))
+    song = clean_song(song)
+
     statematrixToMidi(song, name=path)
+    
+
+def clean_song(song, max_simul_notes=6):
+    '''
+    Takes a song statematrix with sparsely spaced chords that contain too
+    many simultaneous chords and removes them. Can set the number of notes
+    that are exceptable to be played at once with max_simul_notes arg.
+    '''
+    clean_song = []
+    prevstate = [0 for i in range(span * 2)]
+    
+    for time, state in enumerate(song):
+        if np.sum(state[:span]) > max_simul_notes:
+            state = prevstate[:span] + [0] * span
+        elif np.sum(state[:span]) == 0:
+            if np.random.uniform(0, 1, 1) < 0.9:
+                state = prevstate[:span] + [0] * span        
+        prevstate = state       
+
+        clean_song.append(state)
+
+    return clean_song
 
 
 def get_melody_and_drums(midifile):
@@ -139,6 +163,83 @@ def get_melody_and_drums(midifile):
             drum_pattern.append(drum_track)
 
     return patternToStatematrix(melody_pattern), patternToStatematrix(drum_pattern)
+
+
+def get_melody_and_bass(midifile):
+    pattern = midi.read_midifile(midifile)
+    
+    melody_pattern = midi.Pattern()
+    bass_pattern = midi.Pattern()
+
+    melody_pattern.resolution = pattern.resolution
+    bass_pattern.resolution = pattern.resolution
+
+    for track in pattern:
+        total_ticks = [0] * 17
+    
+        melody_track = midi.Track()
+        bass_track = midi.Track()
+    
+        melody_channels = [0]
+        bass_channels = []
+        for i in xrange(len(track)):
+            evt = track[i]
+         
+            if isinstance(evt, midi.ProgramChangeEvent):
+                if evt.data in [[0], [1], [2], [4], [5]]:
+                    melody_channels.append(evt.channel)
+                    melody_track.append(evt)
+            
+            if isinstance(evt, midi.ProgramChangeEvent):
+                if evt.data in [[33], [34], [35], [36], [37], [38], [39], [40]]:
+                    bass_channels.append(evt.channel)
+                    bass_track.append(evt)
+
+            elif isinstance(evt, midi.TimeSignatureEvent) or \
+                    isinstance(evt, midi.SetTempoEvent) or \
+                    isinstance(evt, midi.KeySignatureEvent):          
+                melody_track.append(evt)
+                bass_track.append(evt)
+            
+            elif isinstance(evt, midi.NoteEvent):
+                total_ticks = [x + evt.tick for x in total_ticks]
+            
+                if (evt.channel in bass_channels):
+                    if type(evt) == midi.events.NoteOnEvent:
+                        add_event = midi.NoteOnEvent()
+                    else:
+                        add_event = midi.NoteOffEvent()
+
+                    add_event.tick = total_ticks[evt.channel]
+                    add_event.channel = evt.channel
+                    add_event.data = evt.data
+
+                    drum_track.append(add_event)
+                    total_ticks[evt.channel] = 0
+                
+                elif (evt.channel in melody_channels):   
+                    if type(evt) == midi.events.NoteOnEvent:
+                        add_event = midi.NoteOnEvent()
+                    else:
+                        add_event = midi.NoteOffEvent()
+
+                    add_event.tick = total_ticks[evt.channel]
+                    add_event.channel = evt.channel
+                    add_event.data = evt.data
+
+                    melody_track.append(add_event)
+                    total_ticks[evt.channel] = 0
+        
+        eot = midi.EndOfTrackEvent(tick=1)
+        bass_track.append(eot)
+        melody_track.append(eot)
+
+        if len(melody_track) > 10:
+            melody_pattern.append(melody_track)
+        if len(bass_track) > 10:
+            bass_pattern.append(bass_track)
+
+        return patternToStatematrix(melody_pattern), patternToStatematrix(bass_pattern)
     
 
 # Borrowed heavily from Daniel Johnson's midi manipulation code, with a few changes

@@ -2,7 +2,17 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
+import sys
+sys.path.append('../')
+
 from utils import *
+
+def sample(probs):
+    """
+    Takes in a vector of probabilities, and returns a random vector of 0s and 1s 
+    sampled from the input vector
+    """
+    return tf.floor(probs + tf.random_uniform(tf.shape(probs), 0, 1))
 
 
 class RBM():
@@ -12,10 +22,10 @@ class RBM():
     """
     
     def __init__(self, 
-                 n_hidden=100, 
+                 n_hidden=150, 
                  learning_rate = 5e-3,
                  batch_size = 100, 
-                 n_epochs=500,
+                 n_epochs=400,
                  session = tf.Session(),
                  model_path="models/rbm.ckpt"):
 
@@ -62,9 +72,11 @@ class RBM():
         Sample given visible units using Gibbs Sampling.
         """
         input = np.array(input) # convert to numpy in case
-        sample = self.gibbs_sample(1).eval(session=self.sess,
-                                           feed_dict={self.x: input})
-                              
+        #sample = self.sess.run(self.gibbs_sample_converge, feed_dict={self.x: input})
+        
+        sample = self.gibbs_sample(25).eval(session=self.sess,
+                                            feed_dict={self.x: input})
+        
         return sample
     
 
@@ -153,7 +165,7 @@ class RBM():
         - tf.matmul(xx, tf.transpose(self.vb))
         
         # Calculates different in free energy
-        cost =  tf.reduce_mean(tf.sub(F(self.x), F(x_sample)))
+        cost =  tf.reduce_mean(tf.subtract(F(self.x), F(x_sample)))
         return cost
     
     
@@ -173,13 +185,13 @@ class RBM():
         #Update the values of W, hb, and vb
         size_x = tf.cast(tf.shape(self.x)[0], tf.float32)
 
-        W_update  = tf.mul(self.learning_rate/size_x, 
-                           tf.sub(tf.matmul(tf.transpose(self.x), h), \
+        W_update  = tf.multiply(self.learning_rate/size_x, 
+                           tf.subtract(tf.matmul(tf.transpose(self.x), h), \
                                       tf.matmul(tf.transpose(x_sample), h_sample)))
-        vb_update = tf.mul(self.learning_rate/size_x, 
-                           tf.reduce_sum(tf.sub(self.x, x_sample), 0, True))
-        hb_update = tf.mul(self.learning_rate/size_x, 
-                           tf.reduce_sum(tf.sub(h, h_sample), 0, True))
+        vb_update = tf.multiply(self.learning_rate/size_x, 
+                           tf.reduce_sum(tf.subtract(self.x, x_sample), 0, True))
+        hb_update = tf.multiply(self.learning_rate/size_x, 
+                           tf.reduce_sum(tf.subtract(h, h_sample), 0, True))
 
         #When we do sess.run(update), TensorFlow will run all 3 update steps
         self.update = [self.W.assign_add(W_update), self.vb.assign_add(vb_update), 
@@ -203,12 +215,12 @@ class RBM():
         size_h = tf.cast(tf.shape(self.h)[0], tf.float32)
 
         W_update  = tf.mul(self.learning_rate/size_h, 
-                           tf.sub(tf.matmul(tf.transpose(x), self.h), \
+                           tf.subtract(tf.matmul(tf.transpose(x), self.h), \
                                       tf.matmul(tf.transpose(x_sample), h_sample)))
         vb_update = tf.mul(self.learning_rate/size_h, 
-                           tf.reduce_sum(tf.sub(x, x_sample), 0, True))
+                           tf.reduce_sum(tf.subtract(x, x_sample), 0, True))
         hb_update = tf.mul(self.learning_rate/size_h, 
-                           tf.reduce_sum(tf.sub(self.h, h_sample), 0, True))
+                           tf.reduce_sum(tf.subtract(self.h, h_sample), 0, True))
 
         #When we do sess.run(update), TensorFlow will run all 3 update steps
         self.update_down = [self.W.assign_add(W_update), self.vb.assign_add(vb_update), 

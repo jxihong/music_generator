@@ -5,10 +5,10 @@ from rnnrbm import *
 from midi_parser import *
 
 # Extracts first timesteps as primer for generation
-song_primer = 'Classical_Music_Midi/C_jigs_simple_chords_129.mid'
+song_primer = 'Test_Midi/PianoMan.mid'
 
 # Saved weights for trainged rnnrbm
-model_path = 'parameter_checkpoints/rnnrbm_epoch_200.ckpt'
+model_path = 'parameter_checkpoints/rnnrbm_final.ckpt'
 
 if __name__=='__main__':
     num_songs = 5

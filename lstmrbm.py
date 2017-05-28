@@ -221,7 +221,7 @@ class LSTM_RBM:
         self.generate = generate
         
         
-    def initialize_weights1(self, songs, save="parameter_checkpoints/lstmrbm_initial1.ckpt"):
+        def initialize_weights1(self, songs, save="parameter_checkpoints/lstmrbm_initial.ckpt"):
         """
         Initialize the RBM weights from Contrastive Divergence
         """
@@ -247,6 +247,7 @@ class LSTM_RBM:
                 print("Initialization Epoch: {}/{}".format(epoch, 100))
 
             save_path = saver.save(sess, save)
+
         
     def initialize_weights2(self, songs, save="parameter_checkpoints/lstmrbm_initial2.ckpt"):
         """
@@ -297,7 +298,7 @@ class LSTM_RBM:
             
 
     def fit(self, songs, 
-            checkpoint="parameter_checkpoints/lstmrbm_initial1.ckpt", 
+            checkpoint="parameter_checkpoints/lstmrbm_initial.ckpt", 
             save="parameter_checkpoints/lstmrbm_final.ckpt"):
         """
         Train RNN-RBM via SGD on parsed MIDI matrices.

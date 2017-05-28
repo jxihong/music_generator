@@ -1,6 +1,9 @@
 from RBM import *
 from midi_parser import *
 
+import sys
+sys.path.append('../')
+
 import glob
 
 def get_songs(path):
@@ -18,7 +21,7 @@ def get_songs(path):
 
 
 if __name__=='__main__':
-    songs = get_songs('Jazz_Music_Midi')
+    songs = get_songs('../Jazz_Music_Midi')
     print "{} songs processed".format(len(songs))
     
     ### HyperParameters
@@ -31,7 +34,7 @@ if __name__=='__main__':
     # Size of input layer
     input_len = 2 * note_range * num_timesteps
     
-    model = RBM()
+    model = RBM(n_epochs=200)
     
     X = []
     for song in songs:
@@ -45,7 +48,7 @@ if __name__=='__main__':
     
     model.fit(X)
     
-    gen = model.sample(np.zeros((10, input_len)))
+    gen = model.sample(0.001 * np.ones((10, input_len)))
     
     for i in range(gen.shape[0]):
         if not any(gen[i, :]):
