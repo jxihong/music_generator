@@ -18,16 +18,30 @@ N_EPOCHS = 200
 
 print("Importing Data...")
 start = time.time()
-X,y = import_seq_data()
+X_dat,y_dat = import_seq_data()
 end = time.time()
 print("Importing took " + str(end-start) + " seconds.")
 
-MAXLEN = len(X[0]) # the maximum length of the training sample.
+
+# Prepare the data.
+X = []
+y = []
+window = 5
+for j in range(len(X_dat)):
+    for i in range(1, len(X_dat[j]), window):
+        if (i + window >= len(X_dat[j])):
+            break
+        X.append(X_dat[j][i: i + window])
+        y.append([y_dat[j][i + window]])
+
+#model = build_model(window, n_visible)
+
+X = np.array(X)
+y = np.array(y)
 
 # Build and compile the model. 
 model = Sequential()
-model.add(LSTM(HIDDEN_SIZE,input_shape = (MAXLEN,156))) # variable size
-model.add(RepeatVector(MAXLEN)) # input to decoder = hidden size thing repeated for each time step
+model.add(LSTM(HIDDEN_SIZE,input_shape = (5,156))) # variable size
 
 
 for _ in range(LAYERS):

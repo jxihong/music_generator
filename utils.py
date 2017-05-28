@@ -74,11 +74,11 @@ def read_state_matrices():
     drum_mats = glob.glob('./data/matrices/*_drums.txt')
     melody_mats = glob.glob('./data/matrices/*_melody.txt')
     drum_states = []
-    for drum_mat in drum_mats[:10]:
+    for drum_mat in drum_mats:
         temp= np.genfromtxt(drum_mat)
         drum_states.append(temp)
     melody_states = []
-    for melody_mat in melody_mats[:10]:
+    for melody_mat in melody_mats:
         temp= np.genfromtxt(melody_mat)
         melody_states.append(temp)
 
@@ -102,7 +102,7 @@ def pad_track_list(stateList):
     
     for i in range(0, len(trackList)):
         zeros = np.zeros((max_length - len(trackList[i]), 156))
-        trackList[i] = np.vstack((trackList[i], [zeros]))
+        trackList[i] = np.concatenate((trackList[i], [zeros]))
     return trackList
 
 def import_seq_data():
@@ -111,6 +111,6 @@ def import_seq_data():
     melody matrices, and Y being the padded drum matrices.
     '''
     drums, melodies = read_state_matrices()
-    drums = pad_track_list(drums)
-    melodies = pad_track_list(melodies)
+    #drums = pad_track_list(drums)
+    #melodies = pad_track_list(melodies)
     return melodies,drums
