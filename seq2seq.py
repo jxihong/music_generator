@@ -18,7 +18,9 @@ N_EPOCHS = 200
 
 print("Importing Data...")
 start = time.time()
-X_dat,y_dat = import_seq_data()
+drums, melodies = read_state_matrices()
+X_dat = melodies
+y_dat = drums
 end = time.time()
 print("Importing took " + str(end-start) + " seconds.")
 
