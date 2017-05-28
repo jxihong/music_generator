@@ -42,10 +42,12 @@ y = np.array(y)
 # Build and compile the model. 
 model = Sequential()
 model.add(LSTM(HIDDEN_SIZE,input_shape = (5,156))) # variable size
+model.add(RepeatVector(1)) # input to decoder = hidden size thing repeated for each time step
 
 
 for _ in range(LAYERS):
     model.add(LSTM(HIDDEN_SIZE, return_sequences=True))
+   
     
 model.add(TimeDistributed(Dense(NUM_NOTES)))
 model.add(Activation('sigmoid'))
