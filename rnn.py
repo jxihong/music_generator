@@ -15,13 +15,15 @@ def sigmoid(x):
   return 1 / (1 + math.exp(-x))
 
 
-def build_model(window, len_notes):
+def build_model(window, len_notes, layers = 1):
     model = Sequential()
-    model.add(LSTM(512, return_sequences=True, input_shape=(window, len_notes)))
-    model.add(Dropout(0.2))
-    model.add(LSTM(512, return_sequences=False))
-    model.add(Dropout(0.2))
-    model.add(Dense(len_notes))
+    for _ in range(layers):
+      model.add(LSTM(512, return_sequences=True, input_shape=(window, len_notes)))
+      model.add(Dropout(0.2))
+    for _ in range(layers):
+      model.add(LSTM(512, return_sequences=False))
+      model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(len_notes)))
     model.add(Activation('sigmoid'))
     
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
