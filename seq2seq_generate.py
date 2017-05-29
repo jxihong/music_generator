@@ -18,8 +18,7 @@ WINDOW_SIZE = 10
 note_range = span
 n_visible = 2 * note_range * num_timesteps #The size of visible layer
 
-song_primer = 'data/comrain_drums.mid'
-song_melody = 'data/comrain_melody.mid'
+song_melody = 'rnnrbm_0.mid'
 
 if __name__=='__main__':
     window = 10
@@ -30,17 +29,17 @@ if __name__=='__main__':
     loaded_model = model_from_json(loaded_model_json)
     
     # load weights into new model
-    loaded_model.load_weights("parameter_checkpoints/seq2seq_epoch_50.h5")
+    loaded_model.load_weights("parameter_checkpoints/seq2seq_final.h5")
     loaded_model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
     print "Loaded model from disk"
     
-    start = get_song(midiToStatematrix(song_primer)) # Start sequence for generated song
+    #start = get_song(midiToStatematrix(song_primer)) # Start sequence for generated song
     melody = get_song(midiToStatematrix(song_melody))
 
     start_length = 20
     for i in range(5):
-        generated = start[:start_length]
-        for j in range(300):
+        generated = np.zeros(2 * note_range)
+        for j in range(1000):
             x = np.expand_dims(melody[j:j + WINDOW_SIZE], axis = 0)
             
             preds = loaded_model.predict(x, verbose=0)[0]
@@ -48,5 +47,14 @@ if __name__=='__main__':
             
             generated = np.vstack((generated, next))
             
+        
+        generated_pattern = statematrixToPattern(generated)
+        melody_pattern = statematrixToPattern(melody)
+        
+        for track in melody_pattern:
+            generated_pattern.append(track)
+            
         song_path = "generated/rnn_{}".format(i)
-        write_song(song_path, generated)
+
+        midi.write_midifile("{}.mid".format(song_path), generated_pattern)
+        

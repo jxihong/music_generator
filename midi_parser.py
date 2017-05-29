@@ -303,7 +303,7 @@ def patternToStatematrix(pattern):
     return statematrix
 
 
-def statematrixToMidi(statematrix, name='test', bpm=120):
+def statematrixToPattern(statematrix, bpm=120):
     pattern = midi.Pattern()
     track = midi.Track()
     pattern.append(track)
@@ -339,13 +339,19 @@ def statematrixToMidi(statematrix, name='test', bpm=120):
     
     eot = midi.EndOfTrackEvent(tick=1)
     track.append(eot)
+    
+    return pattern
+    
 
+def statematrixToMidi(statematrix, name='test', bpm=120):
+    pattern = statematrixToPattern(statematrix, bpm=bpm)
+    
     midi.write_midifile("{}.mid".format(name), pattern)
 
 
 if __name__ == '__main__':
     #preprocess('Classical_Music_Midi')
-    
+
     for file in glob.glob('Classical_Music_Midi/*mid'):
         melody_mat, bass_mat = get_melody_and_bass(file) 
         
@@ -375,4 +381,3 @@ if __name__ == '__main__':
         print(write_filename)
         np.savetxt('Melody_Bass_Data/{}_melody.txt'.format(write_filename), melody_mat)
         np.savetxt('Melody_Bass_Data/{}_bass.txt'.format(write_filename), bass_mat)
-        

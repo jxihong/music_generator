@@ -4,8 +4,8 @@ Contains various data utilities.
 
 import glob
 import numpy as np
-from midi_parser import midiToStatematrix
-
+# from midi_parser import midiToStatematrix
+from rnn import *
 
 NOTE_SIZE = 156
 
@@ -73,15 +73,16 @@ def read_state_matrices():
     """
     drum_mats = glob.glob('./Melody_Bass_Data/*_bass.txt')
     melody_mats = glob.glob('./Melody_Bass_Data/*_melody.txt')
+    
     drum_states = []
-    for drum_mat in drum_mats:
+    melody_states = []
+
+    for drum_mat,melody_mat in zip(drum_mats[:20],melody_mats[:20]):
         temp= np.genfromtxt(drum_mat)
         drum_states.append(temp)
-    melody_states = []
-    for melody_mat in melody_mats:
-        temp= np.genfromtxt(melody_mat)
+        temp= np.genfromtxt(melody_mat)	
         melody_states.append(temp)
-
+        
     return drum_states,melody_states
 
 
@@ -111,6 +112,5 @@ def import_seq_data():
     melody matrices, and Y being the padded drum matrices.
     '''
     drums, melodies = read_state_matrices()
-    #drums = pad_track_list(drums)
-    #melodies = pad_track_list(melodies)
+    
     return melodies,drums

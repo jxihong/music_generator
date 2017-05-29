@@ -9,18 +9,20 @@ from utils import *
 import glob
 import numpy as np
 from midi_parser import *
+
+from rnn import *
+
 NUM_NOTES = 156
 HIDDEN_SIZE = 500 # arbitrary
 LAYERS = 2
 N_EPOCHS = 200
 
 # First, import the data. This will take a while.
-
 print("Importing Data...")
 start = time.time()
-drums, melodies = read_state_matrices()
+bass, melodies = read_state_matrices()
 X_dat = melodies
-y_dat = drums
+y_dat = bass
 end = time.time()
 print("Importing took " + str(end-start) + " seconds.")
 
@@ -34,32 +36,18 @@ for j in range(len(X_dat)):
         if (i + window >= len(X_dat[j])):
             break
         X.append(X_dat[j][i: i + window])
-        y.append([y_dat[j][i + window]])
+        y.append(y_dat[j][i + window])
 
 #model = build_model(window, n_visible)
 
 X = np.array(X)
 y = np.array(y)
 
+print X.shape
+print y.shape
+
 # Build and compile the model. 
-model = Sequential()
-model.add(LSTM(HIDDEN_SIZE,input_shape = (5,156))) # variable size
-model.add(RepeatVector(1)) # input to decoder = hidden size thing repeated for each time step
-
-
-for _ in range(LAYERS):
-    model.add(LSTM(HIDDEN_SIZE, return_sequences=True))
-   
-    
-model.add(TimeDistributed(Dense(NUM_NOTES)))
-model.add(Activation('sigmoid'))
-
-
-# Compile the model.
-model.compile(loss='categorical_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
-
+model = build_model(window, NUM_NOTES)
 
 print(model.summary())
 
@@ -75,8 +63,8 @@ for i in range(4):
     
     print("Saved checkpoint after {} epochs.".format(i * 50))
     # serialize weights to HDF5
-    model.save_weights("parameter_checkpoints/seq2seq_epoch_{}.h5".format(i * 50))
+    model.save_weights("parameter_checkpoints/seq2seq_bass_epoch_{}.h5".format((i + 1) * 50))
         
 # serialize weights to HDF5
-model.save_weights("parameter_checkpoints/seq2seq_final.h5")
+model.save_weights("parameter_checkpoints/seq2seq_bass_final.h5")
 

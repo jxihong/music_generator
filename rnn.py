@@ -1,5 +1,6 @@
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
+from keras.layers.wrappers import TimeDistributed 
 from keras.layers.recurrent import LSTM
 
 import tensorflow as tf
@@ -17,13 +18,16 @@ def sigmoid(x):
 
 def build_model(window, len_notes, layers = 1):
     model = Sequential()
+    model.add(LSTM(512, return_sequences=True, input_shape=(window, len_notes)))
+    model.add(Dropout(0.2))
+
     for _ in range(layers):
-      model.add(LSTM(512, return_sequences=True, input_shape=(window, len_notes)))
-      model.add(Dropout(0.2))
-    for _ in range(layers):
-      model.add(LSTM(512, return_sequences=False))
-      model.add(Dropout(0.2))
-    model.add(TimeDistributed(Dense(len_notes)))
+        model.add(LSTM(512, return_sequences=True))
+        model.add(Dropout(0.2))
+
+    model.add(LSTM(512, return_sequences=False))
+    model.add(Dropout(0.2))
+    model.add(Dense(len_notes))
     model.add(Activation('sigmoid'))
     
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
