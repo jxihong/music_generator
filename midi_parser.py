@@ -83,14 +83,14 @@ def clean_song(song, max_simul_notes=6):
     
     for time, state in enumerate(song):
         if np.sum(state[:span]) > max_simul_notes:
-            state = prevstate[:span] + [0] * span
+            state = np.concatenate((prevstate[:span],[0] * span))
         elif np.sum(state[:span]) == 0:
             if np.random.uniform(0, 1, 1) < 0.9:
-                state = prevstate[:span] + [0] * span        
-        prevstate = state       
-
+                state = np.concatenate((prevstate[:span],[0] * span))
+        prevstate = state 
         clean_song.append(state)
-
+        
+    clean_song = np.array(clean_song)
     return clean_song
 
 
@@ -173,18 +173,18 @@ def get_melody_and_bass(midifile):
 
     melody_pattern.resolution = pattern.resolution
     bass_pattern.resolution = pattern.resolution
-
+    
     for track in pattern:
         total_ticks = [0] * 17
     
         melody_track = midi.Track()
         bass_track = midi.Track()
-    
+
         melody_channels = [0]
-        bass_channels = []
+        bass_channels = [2] # For Nottingham database   
         for i in xrange(len(track)):
             evt = track[i]
-         
+            
             if isinstance(evt, midi.ProgramChangeEvent):
                 if evt.data in [[0], [1], [2], [4], [5]]:
                     melody_channels.append(evt.channel)
@@ -214,7 +214,7 @@ def get_melody_and_bass(midifile):
                     add_event.channel = evt.channel
                     add_event.data = evt.data
 
-                    drum_track.append(add_event)
+                    bass_track.append(add_event)
                     total_ticks[evt.channel] = 0
                 
                 elif (evt.channel in melody_channels):   
@@ -233,13 +233,13 @@ def get_melody_and_bass(midifile):
         eot = midi.EndOfTrackEvent(tick=1)
         bass_track.append(eot)
         melody_track.append(eot)
-
+        
         if len(melody_track) > 10:
             melody_pattern.append(melody_track)
         if len(bass_track) > 10:
             bass_pattern.append(bass_track)
-
-        return patternToStatematrix(melody_pattern), patternToStatematrix(bass_pattern)
+            
+    return patternToStatematrix(melody_pattern), patternToStatematrix(bass_pattern)
     
 
 # Borrowed heavily from Daniel Johnson's midi manipulation code, with a few changes
@@ -346,15 +346,33 @@ def statematrixToMidi(statematrix, name='test', bpm=120):
 if __name__ == '__main__':
     #preprocess('Classical_Music_Midi')
     
-    for file in glob.glob('Classical_Music_Midi/C_*'):
-        try:
-            song = np.array(midiToStatematrix(file))
-            #song = get_song(song)
+    for file in glob.glob('Classical_Music_Midi/*mid'):
+        melody_mat, bass_mat = get_melody_and_bass(file) 
         
-            filename = file.split('/')[-1]
-            
-            write_filename = ''.join(filename.split('.')[:-1])
-            print write_filename
-            np.savetxt('Classical_Data/{}.txt'.format(write_filename), song)
-        except:
+        if len(bass_mat) < 10:
             continue
+        
+        len_bass = len(bass_mat)
+        len_melody = len(melody_mat)
+        
+        min_mat = melody_mat
+
+        if(len_bass < len_melody):
+            min_mat = bass_mat
+            
+        diff = abs(len_bass - len_melody)
+        zeros = np.zeros((diff, 2*span))
+        min_mat = np.vstack((min_mat, zeros))
+            
+        if(len_bass < len_melody):
+            bass_mat = min_mat
+        else:
+            melody_mat = min_mat
+        
+        filename = file.split('/')[-1]
+            
+        write_filename = ''.join(filename.split('.')[:-1])
+        print(write_filename)
+        np.savetxt('Melody_Bass_Data/{}_melody.txt'.format(write_filename), melody_mat)
+        np.savetxt('Melody_Bass_Data/{}_bass.txt'.format(write_filename), bass_mat)
+        

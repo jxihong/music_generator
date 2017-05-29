@@ -71,14 +71,14 @@ def read_state_matrices():
     Reads in the written state matrices from the files, returns two arrays
     of state matrices. 
     """
-    drum_mats = glob.glob('./data/matrices/*_drums.txt')
-    melody_mats = glob.glob('./data/matrices/*_melody.txt')
+    drum_mats = glob.glob('./Melody_Bass_Data/*_bass.txt')
+    melody_mats = glob.glob('./Melody_Bass_Data/*_melody.txt')
     drum_states = []
-    for drum_mat in drum_mats[:10]:
+    for drum_mat in drum_mats:
         temp= np.genfromtxt(drum_mat)
         drum_states.append(temp)
     melody_states = []
-    for melody_mat in melody_mats[:10]:
+    for melody_mat in melody_mats:
         temp= np.genfromtxt(melody_mat)
         melody_states.append(temp)
 

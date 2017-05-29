@@ -12,3 +12,5 @@ parameter_checkpoints/checkpoint
 parameter_checkpoints/*ckpt*
 
 data/
+
+*txt
