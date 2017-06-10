@@ -10,6 +10,8 @@
 
 parameter_checkpoints/checkpoint
 parameter_checkpoints/*ckpt*
+parameter_checkpoints/*h5
+parameter_checkpoints/*json
 
 data/
 
